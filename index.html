@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club de Lectura Local</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#5e548e" />
+</head>
+<body>
+  <header>
+    <h1>📚 Club de Lectura Local</h1>
+    <p>Conecta con lectores cerca de ti y comparte experiencias de lectura.</p>
+  </header>
+
+  <main>
+    <section class="login">
+      <h2>Únete al club</h2>
+      <form>
+        <label for="nombre">Nombre</label>
+        <input id="nombre" type="text" placeholder="Nombre" required />
+
+        <label for="ciudad">Ciudad</label>
+        <input id="ciudad" type="text" placeholder="Ciudad" required />
+
+        <button type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <section class="eventos">
+      <h2>Próximos encuentros</h2>
+      <ul>
+        <li><strong>📖 28 Ago:</strong> Reunión sobre <cite>1984</cite> - Biblioteca Central</li>
+        <li><strong>📖 4 Sep:</strong> Debate de <cite>El Principito</cite> - Café Literario</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 Club de Lectura Local</p>
+  </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const eventos = document.querySelector(".eventos");
+      const ubicacionDiv = document.createElement("div");
+      ubicacionDiv.classList.add("ubicacion");
+      eventos.before(ubicacionDiv);
+
+      // Lista de bibliotecas con coordenadas
+      const bibliotecas = [
+        {
+          nombre: "Biblioteca Luis Ángel Arango",
+          direccion: "Calle 11 No. 4-14, La Candelaria, Bogotá D.C.",
+          lat: 4.5981,
+          lon: -74.0758,
+          descripcion: "Biblioteca pública más importante de Colombia, con más de 2 millones de ejemplares y espacios culturales."
+        },
+        {
+          nombre: "Biblioteca Nacional de Colombia",
+          direccion: "Carrera 24 # 53-50, Bogotá D.C.",
+          lat: 4.6120,
+          lon: -74.0717,
+          descripcion: "Biblioteca nacional con colecciones históricas y archivo documental."
+        },
+        {
+          nombre: "Biblioteca Pública El Tintal",
+          direccion: "Calle 44B Sur #77-51, Bogotá D.C.",
+          lat: 4.6217,
+          lon: -74.1632,
+          descripcion: "Biblioteca pública con espacios para comunidad y eventos culturales."
+        }
+      ];
+
+      // Conversión grados a radianes
+      const toRad = (deg) => deg * Math.PI / 180;
+
+      // Función Haversine
+      function calcularDistancia(lat1, lon1, lat2, lon2) {
+        const R = 6371; // km
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) ** 2 +
+                  Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                  Math.sin(dLon / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      if ("geolocation" in navigator) {
+        ubicacionDiv.innerHTML = "<p>Obteniendo tu ubicación...</p>";
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const latUser = position.coords.latitude;
+            const lonUser = position.coords.longitude;
+
+            // Buscar la más cercana
+            let bibliotecaCercana = null;
+            let distanciaMin = Infinity;
+
+            for (const biblio of bibliotecas) {
+              const dist = calcularDistancia(latUser, lonUser, biblio.lat, biblio.lon);
+              if (dist < distanciaMin) {
+                distanciaMin = dist;
+                bibliotecaCercana = biblio;
+              }
+            }
+
+            ubicacionDiv.innerHTML = `
+              <h2>Tu ubicación</h2>
+              <p>📍 Latitud: ${latUser.toFixed(4)}, Longitud: ${lonUser.toFixed(4)}</p>
+              <h3>Biblioteca más cercana:</h3>
+              <p><strong>${bibliotecaCercana.nombre}</strong><br>
+              ${bibliotecaCercana.direccion}<br>
+              ${bibliotecaCercana.descripcion}<br>
+              Aprox. ${distanciaMin.toFixed(2)} km</p>
+              <a href="https://www.google.com/maps/search/?api=1&query=${bibliotecaCercana.lat},${bibliotecaCercana.lon}" 
+                 target="_blank">Ver en Google Maps</a>
+            `;
+          },
+          (error) => {
+            ubicacionDiv.innerHTML = `<p>No se pudo obtener la ubicación: ${error.message}</p>`;
+          }
+        );
+      } else {
+        ubicacionDiv.innerHTML = "<p>Tu navegador no soporta geolocalización.</p>";
+      }
+    });
+
+    // Registro del Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker registrado ✅"))
+        .catch((err) => console.error("Error al registrar SW:", err));
+    }
+  </script>
+</body>
+</html>
